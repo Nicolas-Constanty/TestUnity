@@ -17,10 +17,12 @@ public class NewLight : MonoBehaviour {
     private float inc;
     private List<Vertice> Vertex = new List<Vertice>();
     private int total_points;
+    private List<Collider2D> colList = new List<Collider2D>();
 	// Use this for initialization
 	void Start () {
         
         mesh = new Mesh();
+        mesh.Optimize();
         GetComponent<MeshFilter>().mesh = mesh;
 	}
 	
@@ -38,6 +40,7 @@ public class NewLight : MonoBehaviour {
         pivot_vertice.angle = 0;
         pivot_vertice.pos = Vector3.zero;
         Vertex.Add(pivot_vertice);
+        int layer_mask = ~LayerMask.GetMask("LumColl");
         for (float i = 0; i <= angle; i += inc)
         {
             
@@ -45,24 +48,30 @@ public class NewLight : MonoBehaviour {
             float pos_x = distance * Mathf.Cos(Mathf.Deg2Rad * (i + rot_euler_z));
             float pos_y = distance * Mathf.Sin(Mathf.Deg2Rad * (i + rot_euler_z));
             Vector3 point = new Vector3(pos_x, pos_y, 0);
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, transform.TransformPoint(point) - transform.position, distance);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, transform.TransformPoint(point) - transform.position, distance, layer_mask);
             if (hit)
             {
                 if (hit.collider.GetType() == typeof(BoxCollider2D))
                 {
                     new_vertice.pos = hit.point;
                     Vector2[] points = GetBoxCollider2DPoints((BoxCollider2D)hit.collider);
-                    //Vertice new_sub_verice = new Vertice();
-                    //for (int j = 0; j < points.Length; j++)
-                    //{
-                    //    RaycastHit2D sub_hit = Physics2D.Raycast(transform.position, transform.TransformPoint(points[j]) - transform.position, distance);
-                    //    if (sub_hit.collider) {
-                    //        new_sub_verice.pos = sub_hit.point;
-                    //        Debug.DrawLine(transform.position, new_sub_verice.pos, Color.green);
-                    //        new_sub_verice.pos = transform.InverseTransformPoint(new_sub_verice.pos);
-                    //        Vertex.Add(new_sub_verice);
-                    //    } 
-                    //}
+                    Vertice new_sub_vertice = new Vertice();
+                    for (int j = 0; j < points.Length; j++)
+                    {
+                        RaycastHit2D sub_hit = Physics2D.Raycast(transform.position, points[j] - (Vector2)transform.position);
+                        if (sub_hit.collider && approxHit(points[j], sub_hit.point))
+                        {
+                            new_sub_vertice.pos = sub_hit.point;
+                            Debug.DrawLine(transform.position, new_sub_vertice.pos, Color.green);
+                            new_sub_vertice.pos = transform.InverseTransformPoint(new_sub_vertice.pos);
+                            Vertex.Add(new_sub_vertice);
+                        }
+                    }
+                    float last_angle = ;
+                    while (i <= angle && i < last_angle)
+                    {
+
+                    }
                 }
                 else if (hit.collider.GetType() == typeof(PolygonCollider2D))
                 {
@@ -81,6 +90,13 @@ public class NewLight : MonoBehaviour {
         //SortVertex();
         CreateMesh(ListToArray());
 	}
+
+    private bool approxHit(Vector2 point, Vector2 hit) {
+
+ 
+        return (point == hit || (hit.x < 0.005f + point.x && hit.x > -0.005f + point.x && hit.y < 0.005f + point.y && hit.y > -0.005f + point.y)) ?true:false;
+    }
+
     private Vector2[] GetBoxCollider2DPoints(BoxCollider2D col) {
 
         Vector2[] points = new Vector2[4];
@@ -89,6 +105,19 @@ public class NewLight : MonoBehaviour {
         points[1] = col.offset + new Vector2(-0.5f * size.x, 0.5f * size.y) + (Vector2)col.transform.position;
         points[2] = col.offset + new Vector2(0.5f * size.x, -0.5f * size.y) + (Vector2)col.transform.position;
         points[3] = col.offset + new Vector2(-0.5f * size.x, -0.5f * size.y) + (Vector2)col.transform.position;
+        if (!colList.Contains(col)) {
+            colList.Add(col);
+            CircleCollider2D circle;
+            GameObject empty = new GameObject();
+            empty.transform.parent = col.transform;
+            empty.layer = LayerMask.NameToLayer("LumColl");
+            for (int i = 0; i < 4; i++)
+            {
+                circle = empty.AddComponent<CircleCollider2D>();
+                circle.radius = 0.005f;
+                circle.offset = empty.transform.InverseTransformPoint(points[i]);
+            }
+        }
         return points;
     }
 
@@ -101,8 +130,6 @@ public class NewLight : MonoBehaviour {
         {
             points[i] = col.transform.TransformPoint(local_points[i]);
         }
-        print(points[0].x);
-        print(points[0].y);
         return col.points;
     }
 

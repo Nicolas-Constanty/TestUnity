@@ -40,7 +40,7 @@ MeshRenderer:
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_Materials:
-  - {fileID: 0}
+  - {fileID: 2100000, guid: aa61fe408cf405d4f9136b30606d5d78, type: 2}
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_UseLightProbes: 1
@@ -72,9 +72,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 232b9ff83c1fe234cace1dd8a3c24cc0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  angle: 15
-  distance: 5
-  segments: 10
+  angle: 363
+  distance: 3
+  segments: 100
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
