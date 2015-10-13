@@ -23,11 +23,14 @@ public class DynamicLight : MonoBehaviour {
         funcs[0] = () => SetDynamique();
         funcs[1] = () => SetStatic();
         mesh = new Mesh();
+        mesh.Optimize();
+        mesh.name = mesh.GetInstanceID().ToString();
         GetComponent<MeshFilter>().mesh = mesh;
+        GetComponent<MeshCollider>().sharedMesh = mesh;
     }
 	
 	// Update is called once per frame
-	void FixedUpdate () {
+	void Update () {
 
         funcs[is_static ? 1 : 0].Invoke();
 	}
@@ -50,78 +53,24 @@ public class DynamicLight : MonoBehaviour {
 
         Vector3[] vertex = new Vector3[10000];
         Vector3 origin = transform.GetChild(0).position;
+        float rot_euler_z = transform.rotation.eulerAngles.z;
+        int layer_mask = ~LayerMask.GetMask("LumColl");
         int j = 1;
         bool has_hit = false;
         for (float i = 0; i <= angle; i += inc)
         {
-
-            float rot_euler_z = transform.rotation.eulerAngles.z;
             float pos_x = distance * Mathf.Cos(Mathf.Deg2Rad * (i + rot_euler_z));
             float pos_y = distance * Mathf.Sin(Mathf.Deg2Rad * (i + rot_euler_z));
             Vector3 point = new Vector3(pos_x, pos_y, 0);
-            RaycastHit2D hit = Physics2D.Linecast(origin, point + origin);
-            //Debug.DrawLine(origin, point + origin, Color.blue);
+            RaycastHit2D hit = Physics2D.Raycast(transform.position, transform.TransformPoint(point) - transform.position, distance, layer_mask);
             Vector3 vertice;
             if (hit.collider != null)
             {
-                vertice = hit.point - (Vector2)origin;
-                //vertice.x = Mathf.Cos(Mathf.Deg2Rad * rot_euler_z) * (vertice.x - origin.x) - Mathf.Sin(Mathf.Deg2Rad * rot_euler_z) * (vertice.y - origin.y);
-                //vertice.y = Mathf.Sin(Mathf.Deg2Rad * rot_euler_z) * (vertice.x - origin.x) + Mathf.Cos(Mathf.Deg2Rad * rot_euler_z) * (vertice.y - origin.y);
-                //if (!has_hit && recursiv != 0)
-                //{
-                //    float new_angle = inc / (recursiv - 1);
-                //    for (int h = 1; h < recursiv - 1; h++)
-                //    {
-                //        float calc_angle = i - inc + new_angle * (h + 1);
-                //        pos_x = distance * Mathf.Cos(Mathf.Deg2Rad * (calc_angle + rot_euler_z));
-                //        pos_y = distance * Mathf.Sin(Mathf.Deg2Rad * (calc_angle + rot_euler_z));
-                //        point = new Vector3(pos_x + origin.x, pos_y + origin.y, origin.z);
-                //        hit = Physics2D.Linecast(origin, point);
-                //        //Debug.DrawLine(origin, point, Color.red);
-                //        if (hit.collider != null)
-                //        {
-                //            vertex[j] = hit.point;
-                //            j++;
-                //            break;
-                //        }
-                //        else
-                //        {
-                //            vertex[j] = point;
-                //        }
-                //        j++;
-                //    }
-                //}
-                has_hit = true;
+                vertice = transform.InverseTransformPoint(hit.point);
             }
             else
             {
                 vertice = point;
-                //Calcule another ray for more accurency
-                if (has_hit && recursiv != 0)
-                {
-                    float new_angle = inc / (recursiv - 1);
-                    for (int h = 0; h < recursiv - 1; h++)
-                    {
-                        float calc_angle = i -inc + new_angle * (h + 1);
-                        pos_x = distance * Mathf.Cos(Mathf.Deg2Rad * (calc_angle + rot_euler_z));
-                        pos_y = distance * Mathf.Sin(Mathf.Deg2Rad * (calc_angle + rot_euler_z));
-                        point = new Vector3(pos_x + origin.x, pos_y + origin.y, origin.z);
-                        hit = Physics2D.Linecast(origin, point);
-                        Debug.DrawLine(origin, point, Color.green);
-                        if (hit.collider != null)
-                        {
-                            vertex[j] = hit.point;
-                        }
-                        else
-                        {
-                            vertex[j] = point;
-                            j++;
-                            break;
-                        }
-                        j++;
-                    }
-                }
-                has_hit = false;
             }
             vertex[j] = vertice;
             j++;
